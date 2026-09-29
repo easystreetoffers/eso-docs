@@ -1275,6 +1275,18 @@
             "description": "The gross offer amount, before the service fee and repairs. The estimate fields below do not change this meaning.",
             "example": 373200
           },
+          "offer_amount_low": {
+            "type": "integer",
+            "format": "bigint",
+            "description": "Low end of the gross offer range, in dollars.",
+            "example": 353600
+          },
+          "offer_amount_high": {
+            "type": "integer",
+            "format": "bigint",
+            "description": "High end of the gross offer range, in dollars.",
+            "example": 393600
+          },
           "service_fee_estimate": {
             "type": "integer",
             "format": "bigint",
@@ -1327,15 +1339,15 @@
             "type": "integer",
             "format": "bigint",
             "nullable": true,
-            "description": "Low end of the estimated net range: offer_amount - service_fee_high - repairs_high. Null means \"no estimate\", never zero.",
-            "example": 269100
+            "description": "Low end of the estimated net range: offer_amount_low - service_fee_high - repairs_high. Null means \"no estimate\", never zero.",
+            "example": 249500
           },
           "net_high": {
             "type": "integer",
             "format": "bigint",
             "nullable": true,
-            "description": "High end of the estimated net range: offer_amount - service_fee_low - repairs_estimate. Null means \"no estimate\", never zero.",
-            "example": 303400
+            "description": "High end of the estimated net range: offer_amount_high - service_fee_low - repairs_estimate. Null means \"no estimate\", never zero.",
+            "example": 323800
           },
           "offer_model_version": {
             "type": "string",
