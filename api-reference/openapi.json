@@ -1271,7 +1271,83 @@
         "properties": {
           "offer_amount": {
             "type": "integer",
-            "format": "bigint"
+            "format": "bigint",
+            "description": "The gross offer amount, before the service fee and repairs. The estimate fields below do not change this meaning.",
+            "example": 373200
+          },
+          "service_fee_estimate": {
+            "type": "integer",
+            "format": "bigint",
+            "nullable": true,
+            "description": "Estimated service fee, in dollars. Null means \"no estimate\", never zero.",
+            "example": 68300
+          },
+          "service_fee_low": {
+            "type": "integer",
+            "format": "bigint",
+            "nullable": true,
+            "description": "Low end of the estimated service fee range, in dollars. Null means \"no estimate\", never zero.",
+            "example": 57100
+          },
+          "service_fee_high": {
+            "type": "integer",
+            "format": "bigint",
+            "nullable": true,
+            "description": "High end of the estimated service fee range, in dollars. Null means \"no estimate\", never zero.",
+            "example": 79500
+          },
+          "service_fee_pct_used": {
+            "type": "number",
+            "nullable": true,
+            "description": "The service fee share of the gross offer that the estimate uses, 4 decimals. Null means \"no estimate\", never zero.",
+            "example": 0.183
+          },
+          "repairs_estimate": {
+            "type": "integer",
+            "format": "bigint",
+            "nullable": true,
+            "description": "Estimated repairs, in dollars. Null means \"no estimate\", never zero.",
+            "example": 12700
+          },
+          "repairs_high": {
+            "type": "integer",
+            "format": "bigint",
+            "nullable": true,
+            "description": "High end of the estimated repairs range, in dollars. net_low subtracts this figure. Null means \"no estimate\", never zero.",
+            "example": 24600
+          },
+          "predicted_net": {
+            "type": "integer",
+            "format": "bigint",
+            "nullable": true,
+            "description": "Estimated net to the seller: offer_amount - service_fee_estimate - repairs_estimate, to the dollar. Null means \"no estimate\", never zero.",
+            "example": 292200
+          },
+          "net_low": {
+            "type": "integer",
+            "format": "bigint",
+            "nullable": true,
+            "description": "Low end of the estimated net range: offer_amount - service_fee_high - repairs_high. Null means \"no estimate\", never zero.",
+            "example": 269100
+          },
+          "net_high": {
+            "type": "integer",
+            "format": "bigint",
+            "nullable": true,
+            "description": "High end of the estimated net range: offer_amount - service_fee_low - repairs_estimate. Null means \"no estimate\", never zero.",
+            "example": 303400
+          },
+          "offer_model_version": {
+            "type": "string",
+            "nullable": true,
+            "description": "Version of the offer model that made the estimate. Null means \"no estimate\", never zero.",
+            "example": "2.1"
+          },
+          "fee_state_default": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "True when the property's state has no state-specific fee figure, so the fee range uses the typical national figure. Null means \"no estimate\", never zero.",
+            "example": false
           },
           "additional_terms": {
             "type": "object",
