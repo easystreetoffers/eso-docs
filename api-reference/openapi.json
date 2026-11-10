@@ -257,7 +257,7 @@
             }
           },
           "400": {
-            "description": "Invalid sort, limit, offset or supply_line. The body names the value and lists the valid ones",
+            "description": "Invalid sort, limit, offset or supply_line (the body names the value and lists the valid ones), or an API key that is not a buyer key (\"Incorrect buyer user type set up. Please contact support\")",
             "content": {
               "text/plain": {
                 "schema": {
@@ -271,7 +271,8 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "type": "string"
+                  "type": "string",
+                  "example": "{\"error\":\"Not authorized: api key invalid\"}"
                 }
               }
             }
