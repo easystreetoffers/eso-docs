@@ -183,55 +183,105 @@
     },
     "/active-offer-requests": {
       "get": {
-        "description": "Returns all active offer requests from the system. These offer requests might not belong to the calling user",
+        "description": "Returns every active listing in the system, including listings that do not belong to the calling user. Addresses are masked: each listing carries only its city, state, ZIP and a masked label, never the street address, coordinates, parcel number or owner. Test listings are never returned.",
         "parameters": [
           {
             "name": "limit",
             "in": "query",
-            "description": "The maximum number of results to return, default is 10",
+            "description": "The maximum number of results to return: a whole number from 1 to 100. Default 10",
             "schema": {
               "type": "integer",
-              "format": "int32"
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
             }
           },
           {
             "name": "offset",
             "in": "query",
-            "description": "The offset of the results to return, default is 0",
+            "description": "The number of results to skip: a whole number of 0 or more. Default 0",
             "schema": {
               "type": "integer",
-              "format": "int32"
+              "format": "int32",
+              "minimum": 0,
+              "default": 0
             }
           },
           {
             "name": "sort",
             "in": "query",
-            "description": "The sort order of the results, default is offer_requested_at.desc",
+            "description": "The sort order, as <column>.<asc|desc>. The column is one of offer_requested_at, offer_request_expires_at, offer_request_refreshed_at, offer_request_decided_at, offer_request_asking, offer_request_id. Default offer_requested_at.desc. Ties are broken by offer_request_id.",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "default": "offer_requested_at.desc",
+              "example": "offer_request_expires_at.asc"
+            }
+          },
+          {
+            "name": "supply_line",
+            "in": "query",
+            "description": "Return only listings on these supply lines. Takes a comma-separated list (supply_line=mls,auction) or a repeated parameter (supply_line=mls&supply_line=auction). Omit it for every line. An unknown value returns 400.",
+            "style": "form",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "off_market",
+                  "wholesale",
+                  "mls",
+                  "auction",
+                  "new_construction",
+                  "occupied_rental",
+                  "early_signal_mls",
+                  "portfolio"
+                ]
+              }
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Offer request response",
+            "description": "Active listings, address masked",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/offer_request"
+                    "$ref": "#/components/schemas/partner_listing"
                   }
                 }
               }
             }
           },
           "400": {
+            "description": "Invalid sort, limit, offset or supply_line. The body names the value and lists the valid ones",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
             "description": "Unexpected error",
             "content": {
-              "application/json": {
+              "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "type": "string"
                 }
               }
             }
@@ -3180,6 +3230,584 @@
           "expiration_date": {
             "type": "string",
             "format": "date"
+          }
+        }
+      },
+      "partner_listing": {
+        "type": "object",
+        "description": "One active listing. Fields with no value are omitted.",
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/partner_listing_request"
+          },
+          "property": {
+            "description": "Property facts with the address masked. Fields named in Pascal Case follow the RESO 2.0 standard.",
+            "$ref": "#/components/schemas/partner_listing_property"
+          },
+          "assumptions": {
+            "description": "Analyst assumptions (pricing inputs)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/partner_listing_assumptions"
+            }
+          },
+          "media": {
+            "description": "Signed URLs of the listing's photos stored by ESO (images only). The URLs stop working after 10 minutes.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "partner_listing_request": {
+        "type": "object",
+        "properties": {
+          "offer_request_id": {
+            "type": "integer",
+            "description": "The listing's unique id"
+          },
+          "offer_requested_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "offer_request_asking": {
+            "type": "number",
+            "description": "Asking price in USD"
+          },
+          "offer_request_expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the offer window closes"
+          },
+          "offer_request_is_approved": {
+            "type": "boolean"
+          },
+          "offer_request_decided_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "offer_request_status": {
+            "type": "string",
+            "description": "Always active on this endpoint"
+          },
+          "offer_request_refreshed_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "partner_listing_property": {
+        "type": "object",
+        "properties": {
+          "address_display": {
+            "type": "string",
+            "description": "The masked address label shown on a locked listing, e.g. \"Property in Memphis, TN 38127\". The street address is never returned.",
+            "example": "Property in Memphis, TN 38127"
+          },
+          "City": {
+            "maxLength": 50,
+            "type": "string",
+            "format": "character varying"
+          },
+          "PostalCity": {
+            "maxLength": 50,
+            "type": "string",
+            "format": "character varying"
+          },
+          "StateOrProvince": {
+            "maxLength": 2,
+            "type": "string",
+            "format": "character varying"
+          },
+          "PostalCode": {
+            "maxLength": 10,
+            "type": "string",
+            "format": "character varying"
+          },
+          "CountyOrParish": {
+            "maxLength": 50,
+            "type": "string",
+            "format": "character varying"
+          },
+          "cbsa_title": {
+            "type": "string",
+            "description": "used to identify markets",
+            "format": "text"
+          },
+          "school_elementary": {
+            "type": "string"
+          },
+          "school_middle": {
+            "type": "string"
+          },
+          "school_high": {
+            "type": "string"
+          },
+          "PropertyType": {
+            "maxLength": 50,
+            "type": "string",
+            "format": "character varying"
+          },
+          "PropertySubType": {
+            "maxLength": 50,
+            "type": "string",
+            "format": "character varying",
+            "enum": [
+              "Single Family Residence",
+              "Apartment",
+              "Condominium",
+              "Cabin",
+              "Manufactured Home",
+              "Mobile Home",
+              "Duplex",
+              "Triplex",
+              "Quadruplex",
+              "Townhouse"
+            ]
+          },
+          "PropertyCondition": {
+            "type": "string",
+            "nullable": true,
+            "description": "The condition of the property",
+            "enum": [
+              "Move-in Ready",
+              "Needs Minor Aesthetic Repairs",
+              "Needs Above Normal Repairs",
+              "Needs Major Repairs",
+              "Full Remodel"
+            ],
+            "example": "Needs Minor Aesthetic Repairs"
+          },
+          "BedroomsTotal": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "BathroomsFull": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "BathroomsHalf": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "BathroomsOneQuarter": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "BathroomsPartial": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "BathroomsThreeQuarter": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "LivingArea": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "LivingAreaSource": {
+            "maxLength": 50,
+            "type": "string",
+            "format": "character varying"
+          },
+          "LivingAreaUnits": {
+            "maxLength": 25,
+            "type": "string",
+            "format": "character varying"
+          },
+          "LotSizeSquareFeet": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "YearBuilt": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "Stories": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "Levels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "Basement": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "BasementYN": {
+            "type": "boolean",
+            "format": "boolean"
+          },
+          "ConstructionMaterials": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Brick",
+                "Wood Siding",
+                "Wood Framing",
+                "Concrete",
+                "Stucco",
+                "Vinyl Siding",
+                "Stone",
+                "Frame",
+                "Other",
+                "Unknown"
+              ]
+            }
+          },
+          "AttachedGarageYN": {
+            "type": "boolean",
+            "format": "boolean"
+          },
+          "GarageYN": {
+            "type": "boolean",
+            "format": "boolean"
+          },
+          "GarageSpaces": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "CarportYN": {
+            "type": "boolean",
+            "format": "boolean"
+          },
+          "CarportSpaces": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "CoveredSpaces": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "OpenParkingYN": {
+            "type": "boolean",
+            "format": "boolean"
+          },
+          "OpenParkingSpaces": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "OtherParking": {
+            "maxLength": 1024,
+            "type": "string",
+            "format": "character varying"
+          },
+          "ParkingTotal": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "PoolPrivateYN": {
+            "type": "boolean",
+            "format": "boolean"
+          },
+          "SpaYN": {
+            "type": "boolean",
+            "format": "boolean"
+          },
+          "SeniorCommunityYN": {
+            "type": "boolean",
+            "format": "boolean"
+          },
+          "Sewer": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Aerobic Septic",
+                "Cesspool",
+                "Engineered Septic",
+                "Holding Tank",
+                "Mound Septic",
+                "None",
+                "Other",
+                "Perc Test On File",
+                "Perc Test Required",
+                "Private Sewer",
+                "Public Sewer",
+                "Septic Needed",
+                "Septic Tank",
+                "Shared Septic",
+                "Unknown"
+              ]
+            }
+          },
+          "WaterSource": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Cistern",
+                "None",
+                "Other",
+                "Private",
+                "Public",
+                "Shared Well",
+                "Spring",
+                "Well"
+              ]
+            }
+          },
+          "Utilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "PowerProductionType": {
+            "type": "string",
+            "format": "text"
+          },
+          "roof_age": {
+            "type": "number",
+            "description": "Roof age in years"
+          },
+          "hvac_age": {
+            "type": "number",
+            "description": "HVAC age in years"
+          },
+          "waterheater_age": {
+            "type": "number",
+            "description": "Water heater age in years"
+          },
+          "rehab_type": {
+            "type": "string"
+          },
+          "estimated_renovation": {
+            "type": "number",
+            "description": "Estimated renovation cost in USD"
+          },
+          "ListPrice": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "AssociationYN": {
+            "type": "boolean",
+            "format": "boolean"
+          },
+          "AssociationFee": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "AssociationFeeFrequency": {
+            "maxLength": 25,
+            "type": "string",
+            "format": "character varying",
+            "enum": [
+              "Annually",
+              "Bi-Monthly",
+              "Bi-Weekly",
+              "Daily",
+              "Monthly",
+              "One Time",
+              "Quarterly",
+              "Seasonal",
+              "Semi-Annually",
+              "Semi-Monthly",
+              "Weekly"
+            ]
+          },
+          "AssociationFee2": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "AssociationFee2Frequency": {
+            "maxLength": 25,
+            "type": "string",
+            "format": "character varying"
+          },
+          "TaxAnnualAmount": {
+            "type": "integer",
+            "format": "integer"
+          },
+          "TaxOtherAnnualAssessmentAmount": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "TaxYear": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "TotalActualRent": {
+            "type": "number",
+            "format": "numeric"
+          },
+          "LeaseExpiration": {
+            "type": "string",
+            "format": "date"
+          },
+          "OccupancyAtClosing": {
+            "type": "string"
+          },
+          "OccupantType": {
+            "maxLength": 50,
+            "type": "string",
+            "format": "character varying",
+            "enum": [
+              "Owner",
+              "Tenant",
+              "Vacant"
+            ]
+          },
+          "supply_line": {
+            "type": "string",
+            "description": "The listing's supply line. A property with no recorded line is reported as off_market.",
+            "enum": [
+              "off_market",
+              "wholesale",
+              "mls",
+              "auction",
+              "new_construction",
+              "occupied_rental",
+              "early_signal_mls",
+              "portfolio"
+            ]
+          },
+          "auction_start_date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Auction listings only"
+          },
+          "auction_end_date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Auction listings only"
+          },
+          "photo_urls": {
+            "type": "array",
+            "description": "Photo links hosted on other sites (MLS photos included). Photos stored by ESO are returned in media instead.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "photos_count": {
+            "type": "integer",
+            "description": "Number of photos returned for the listing: the media URLs when there are any, otherwise photo_urls."
+          },
+          "photo_labels": {
+            "type": "object",
+            "description": "Optional labels for the returned photos (e.g. kitchen, front_exterior). Keys are a photo_urls entry, or the storage path inside a media URL.",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "partner_listing_assumptions": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "timestamp with time zone",
+            "default": "now()"
+          },
+          "assumption_source": {
+            "type": "string"
+          },
+          "assumptions_complete": {
+            "type": "boolean"
+          },
+          "assumption_confidence": {
+            "type": "number"
+          },
+          "fmv": {
+            "type": "integer",
+            "format": "bigint"
+          },
+          "ltr_monthly_rent": {
+            "type": "integer",
+            "format": "bigint"
+          },
+          "ltr_annual_rent_increase": {
+            "type": "number",
+            "format": "double precision"
+          },
+          "ltr_arv": {
+            "type": "integer",
+            "format": "bigint"
+          },
+          "ltr_renovation_cost": {
+            "type": "integer",
+            "format": "bigint"
+          },
+          "ltr_suggested_strike_price": {
+            "type": "number"
+          },
+          "str_season_1_daily_rate": {
+            "type": "integer",
+            "format": "bigint"
+          },
+          "str_season_2_daily_rate": {
+            "type": "integer",
+            "format": "bigint"
+          },
+          "str_season_3_daily_rate": {
+            "type": "integer",
+            "format": "bigint"
+          },
+          "str_season_4_daily_rate": {
+            "type": "integer",
+            "format": "bigint"
+          },
+          "str_arv": {
+            "type": "integer",
+            "format": "bigint"
+          },
+          "str_renovation_cost": {
+            "type": "integer",
+            "format": "bigint"
+          },
+          "rr_weekly_rent_per_room": {
+            "type": "integer",
+            "format": "bigint"
+          },
+          "rr_arv": {
+            "type": "integer",
+            "format": "bigint"
+          },
+          "rr_beds": {
+            "type": "integer",
+            "format": "smallint"
+          },
+          "rr_baths": {
+            "type": "integer",
+            "format": "smallint"
+          },
+          "rr_renovation_cost": {
+            "type": "integer",
+            "format": "bigint"
+          },
+          "ff_arv": {
+            "type": "integer",
+            "format": "bigint"
+          },
+          "ff_renovation_cost": {
+            "type": "integer",
+            "format": "bigint"
+          },
+          "ff_suggested_strike_price": {
+            "type": "number"
+          },
+          "property_annual_tax": {
+            "type": "integer",
+            "format": "bigint"
+          },
+          "property_annual_hoa": {
+            "type": "integer",
+            "format": "bigint"
+          },
+          "reno_items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
           }
         }
       },
