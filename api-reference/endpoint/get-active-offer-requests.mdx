@@ -2,3 +2,51 @@
 title: List Active Offer Requests
 openapi: get /active-offer-requests
 ---
+
+Lists every active listing on ESO, including listings that are not matched to you. Use it to browse supply; use [List Offer Requests](/api-reference/endpoint/get-offer-requests) for your own matches.
+
+<Warning>
+  Addresses are masked. A listing carries its city, state, ZIP and county plus a masked label in `property.address_display` (for example `Property in Memphis, TN 38127`). The street address, coordinates, parcel number, owner, listing agent and office, access details and internal notes are never returned.
+</Warning>
+
+## Identifying a listing
+
+`request.offer_request_id` is the listing's unique id.
+
+## Filtering by supply line
+
+Pass `supply_line` to return only some lines, as a comma-separated list or a repeated parameter:
+
+```sh
+curl --request GET \
+  --url 'https://v2.easystreetoffers.com/api/v2/active-offer-requests?supply_line=mls,auction&limit=50' \
+  --header 'Authorization: <api-key>'
+```
+
+| Value | Supply line |
+|--------|-------------|
+| off_market | Off-Market. Also covers any listing with no recorded line |
+| wholesale | Wholesale |
+| mls | MLS |
+| auction | Auction |
+| new_construction | New Construction |
+| occupied_rental | Occupied Rentals |
+| early_signal_mls | Early Signal MLS |
+| portfolio | Portfolio packages |
+
+An unknown value returns `400` rather than the whole feed. Each listing reports its line in `property.supply_line`.
+
+## Sorting and paging
+
+- `sort` takes `<column>.<asc|desc>`. The column is one of `offer_requested_at` (the default, newest first), `offer_request_expires_at`, `offer_request_refreshed_at`, `offer_request_decided_at`, `offer_request_asking` or `offer_request_id`. Listings with equal values are ordered by `offer_request_id`, so pages never repeat or skip a listing.
+- `limit` is from 1 to 100 (default 10). `offset` is 0 or more (default 0).
+
+Any other value returns `400`, and the response body names the valid values.
+
+## Photos
+
+- `media` holds signed URLs for the listing's photos stored by ESO. Only images are returned. The URLs stop working after 10 minutes, so request the listing again rather than storing them.
+- `property.photo_urls` holds photo links hosted elsewhere, MLS photos included.
+- `property.photos_count` is the number of photos returned, and `property.photo_labels` labels some of them (for example `kitchen`).
+
+Fields with no value are left out of the response.
