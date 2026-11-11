@@ -5,9 +5,15 @@ openapi: get /active-offer-requests
 
 Lists every active listing on ESO, including listings that are not matched to you. Use it to browse supply; use [List Offer Requests](/api-reference/endpoint/get-offer-requests) for your own matches.
 
-<Warning>
-  Addresses are masked. A listing carries its city, state, ZIP and county plus a masked label in `property.address_display` (for example `Property in Memphis, TN 38127`). The street address, coordinates, parcel number, owner, listing agent and office, access details and internal notes are never returned.
-</Warning>
+## Address and location
+
+Each listing carries its street address in `property.UnparsedAddress`, its parts (`StreetNumber`, `StreetDirPrefix`, `StreetName`, `StreetSuffix`, `StreetDirSuffix`, `UnitNumber`) and its city, state, ZIP and county. `property.address_display` is the street address, or `Property in <City>, <ST> <ZIP>` when the listing has none.
+
+`property.Latitude` and `property.Longitude` are returned when ESO has coordinates for the property.
+
+<Note>
+  The parcel number, owner, listing agent and office, access details and internal notes are never returned.
+</Note>
 
 ## Identifying a listing
 

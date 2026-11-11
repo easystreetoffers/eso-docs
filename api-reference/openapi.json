@@ -183,7 +183,7 @@
     },
     "/active-offer-requests": {
       "get": {
-        "description": "Returns every active listing in the system, including listings that do not belong to the calling user. Addresses are masked: each listing carries only its city, state, ZIP and a masked label, never the street address, coordinates, parcel number or owner. Test listings are never returned.",
+        "description": "Returns every active listing in the system, including listings that do not belong to the calling user. Each listing carries its street address and, when ESO has them, its latitude and longitude. The parcel number, owner, listing agent and office, access details and internal notes are never returned. Test listings are never returned.",
         "parameters": [
           {
             "name": "limit",
@@ -244,7 +244,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Active listings, address masked",
+            "description": "Active listings",
             "content": {
               "application/json": {
                 "schema": {
@@ -3242,7 +3242,7 @@
             "$ref": "#/components/schemas/partner_listing_request"
           },
           "property": {
-            "description": "Property facts with the address masked. Fields named in Pascal Case follow the RESO 2.0 standard.",
+            "description": "Property facts, including the street address and coordinates. Fields named in Pascal Case follow the RESO 2.0 standard.",
             "$ref": "#/components/schemas/partner_listing_property"
           },
           "assumptions": {
@@ -3303,8 +3303,53 @@
         "properties": {
           "address_display": {
             "type": "string",
-            "description": "The masked address label shown on a locked listing, e.g. \"Property in Memphis, TN 38127\". The street address is never returned.",
-            "example": "Property in Memphis, TN 38127"
+            "description": "The street address. When the listing has none, a label of its city, state and ZIP, e.g. \"Property in Memphis, TN 38127\".",
+            "example": "1234 Elm St, Memphis, TN 38127"
+          },
+          "UnparsedAddress": {
+            "type": "string",
+            "description": "The full street address.",
+            "example": "1234 Elm St, Memphis, TN 38127"
+          },
+          "StreetNumber": {
+            "maxLength": 25,
+            "type": "string",
+            "format": "character varying"
+          },
+          "StreetDirPrefix": {
+            "maxLength": 15,
+            "type": "string",
+            "format": "character varying"
+          },
+          "StreetName": {
+            "maxLength": 50,
+            "type": "string",
+            "format": "character varying"
+          },
+          "StreetSuffix": {
+            "maxLength": 25,
+            "type": "string",
+            "format": "character varying"
+          },
+          "StreetDirSuffix": {
+            "maxLength": 15,
+            "type": "string",
+            "format": "character varying"
+          },
+          "UnitNumber": {
+            "maxLength": 25,
+            "type": "string",
+            "format": "character varying"
+          },
+          "Latitude": {
+            "type": "number",
+            "format": "numeric",
+            "description": "Left out when ESO has no coordinates for the property."
+          },
+          "Longitude": {
+            "type": "number",
+            "format": "numeric",
+            "description": "Left out when ESO has no coordinates for the property."
           },
           "City": {
             "maxLength": 50,
